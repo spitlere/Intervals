@@ -1,0 +1,456 @@
+# Workout Timer & Coach App
+
+Save the code below as an `.html` file (for example, `workout-coach.html`) and open it in any modern web browser (like Safari, Chrome, or Firefox) to use your new app.
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workout Timer & Coach</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --text-color: #ffffff;
+            --primary-color: #03dac6;
+            --secondary-color: #bb86fc;
+            --danger-color: #cf6679;
+            --work-color: #4caf50;
+            --rest-color: #f44336;
+            --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-family);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 { margin-bottom: 5px; }
+        .subtitle { color: #aaaaaa; margin-bottom: 20px; font-size: 0.9em; }
+
+        .timer-display {
+            font-size: 6rem;
+            font-weight: bold;
+            margin: 20px 0;
+            font-variant-numeric: tabular-nums;
+            transition: color 0.3s ease;
+        }
+
+        .current-exercise {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            min-height: 2.5rem;
+        }
+
+        .next-exercise {
+            font-size: 1.2rem;
+            color: #888;
+            margin-bottom: 20px;
+            min-height: 1.5rem;
+        }
+
+        .voice-settings {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        select {
+            background-color: #333;
+            color: white;
+            border: 1px solid #555;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 1rem;
+            max-width: 250px;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+
+        .status-message {
+            font-size: 0.9em;
+            color: var(--secondary-color);
+            min-height: 1.2em;
+            margin-bottom: 20px;
+        }
+
+        button {
+            background-color: #333;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        button:hover { background-color: #444; }
+        #startBtn { background-color: var(--primary-color); color: #000; font-weight: bold; }
+        #startBtn:hover { background-color: #01b8a5; }
+
+        .upload-section {
+            background-color: #1e1e1e;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: left;
+            margin-top: 20px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 150px;
+            background-color: #2c2c2c;
+            color: #fff;
+            border: 1px solid #444;
+            border-radius: 6px;
+            padding: 10px;
+            font-family: monospace;
+            box-sizing: border-box;
+            resize: vertical;
+        }
+
+        .upload-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background-color: #333;
+            border-radius: 5px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: var(--secondary-color);
+            width: 0%;
+            transition: width 1s linear;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Workout Coach</h1>
+        <div class="subtitle" id="workoutName">Load a workout to begin</div>
+
+        <div class="current-exercise" id="currentExercise">Ready</div>
+
+        <div class="timer-display" id="timeDisplay">00:00</div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <div class="next-exercise" id="nextExercise">Next up: --</div>
+
+        <div class="voice-settings">
+            <label for="voiceSelect">Coach Voice:</label>
+            <select id="voiceSelect"></select>
+        </div>
+
+        <div class="controls">
+            <button id="startBtn">Start</button>
+            <button id="pauseBtn">Pause</button>
+            <button id="resetBtn">Reset</button>
+        </div>
+
+        <div class="status-message" id="wakeLockStatus"></div>
+
+        <div class="upload-section">
+            <h3>Load Workout (JSON)</h3>
+            <p style="font-size: 0.85em; color: #aaa;">Paste a workout format below and click Load.</p>
+            <textarea id="workoutJson">{
+  "name": "Classic Tabata (4 mins)",
+  "intervals": [
+    { "name": "Get Ready!", "duration": 10, "type": "prep" },
+    { "name": "Jumping Jacks", "duration": 20, "type": "work" },
+    { "name": "Rest", "duration": 10, "type": "rest" },
+    { "name": "Squats", "duration": 20, "type": "work" },
+    { "name": "Rest", "duration": 10, "type": "rest" },
+    { "name": "Pushups", "duration": 20, "type": "work" },
+    { "name": "Rest", "duration": 10, "type": "rest" },
+    { "name": "Burpees", "duration": 20, "type": "work" },
+    { "name": "Workout Complete!", "duration": 0, "type": "finish" }
+  ]
+}</textarea>
+            <div class="upload-controls">
+                <span id="loadStatus" style="color: var(--primary-color); font-size: 0.9em;"></span>
+                <button id="loadBtn" style="padding: 10px 20px;">Load Workout</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentWorkout = null;
+        let currentIntervalIndex = 0;
+        let timeRemaining = 0;
+        let timerInterval = null;
+        let isRunning = false;
+        let totalWorkoutTime = 0;
+        let elapsedWorkoutTime = 0;
+        let wakeLock = null;
+        let voices = [];
+
+        // UI Elements
+        const timeDisplay = document.getElementById('timeDisplay');
+        const currentExerciseEl = document.getElementById('currentExercise');
+        const nextExerciseEl = document.getElementById('nextExercise');
+        const workoutNameEl = document.getElementById('workoutName');
+        const progressFill = document.getElementById('progressFill');
+        const jsonInput = document.getElementById('workoutJson');
+        const loadStatus = document.getElementById('loadStatus');
+        const wakeLockStatus = document.getElementById('wakeLockStatus');
+        const voiceSelect = document.getElementById('voiceSelect');
+
+        // Text-to-Speech synth
+        const synth = window.speechSynthesis;
+
+        function populateVoiceList() {
+            voices = synth.getVoices();
+            voiceSelect.innerHTML = '';
+            
+            // Filter to English voices for better usability, though not strictly required
+            const englishVoices = voices.filter(voice => voice.lang.includes('en'));
+            const voicesToUse = englishVoices.length > 0 ? englishVoices : voices;
+
+            voicesToUse.forEach((voice) => {
+                const option = document.createElement('option');
+                option.textContent = `${voice.name} (${voice.lang})`;
+                
+                if (voice.default) {
+                    option.textContent += ' — Default';
+                }
+
+                option.setAttribute('data-lang', voice.lang);
+                option.setAttribute('data-name', voice.name);
+                voiceSelect.appendChild(option);
+            });
+        }
+
+        populateVoiceList();
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = populateVoiceList;
+        }
+
+        // Wake Lock API (keeps screen awake)
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    wakeLockStatus.textContent = "Screen awake mode active";
+
+                    // Re-acquire lock if page becomes visible again
+                    document.addEventListener('visibilitychange', async () => {
+                        if (wakeLock !== null && document.visibilityState === 'visible') {
+                            wakeLock = await navigator.wakeLock.request('screen');
+                        }
+                    });
+                }
+            } catch (err) {
+                console.log(`Wake Lock error: ${err.name}, ${err.message}`);
+                wakeLockStatus.textContent = "";
+            }
+        }
+
+        function releaseWakeLock() {
+            if (wakeLock !== null) {
+                wakeLock.release().then(() => {
+                    wakeLock = null;
+                    wakeLockStatus.textContent = "";
+                });
+            }
+        }
+
+        function speak(text) {
+            synth.cancel();
+            if (text) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                
+                // Set the selected voice
+                const selectedOption = voiceSelect.selectedOptions[0];
+                if (selectedOption) {
+                    const selectedVoiceName = selectedOption.getAttribute('data-name');
+                    const selectedVoice = voices.find(v => v.name === selectedVoiceName);
+                    if (selectedVoice) {
+                        utterance.voice = selectedVoice;
+                    }
+                }
+
+                utterance.rate = 1.1; 
+                synth.speak(utterance);
+            }
+        }
+
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const s = (seconds % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        function updateDisplay() {
+            timeDisplay.textContent = formatTime(timeRemaining);
+
+            if (!currentWorkout || !currentWorkout.intervals[currentIntervalIndex]) return;
+
+            const currentObj = currentWorkout.intervals[currentIntervalIndex];
+            currentExerciseEl.textContent = currentObj.name;
+
+            if(currentObj.type === 'work') timeDisplay.style.color = 'var(--work-color)';
+            else if(currentObj.type === 'rest') timeDisplay.style.color = 'var(--rest-color)';
+            else timeDisplay.style.color = 'var(--text-color)';
+
+            if (currentIntervalIndex + 1 < currentWorkout.intervals.length) {
+                const nextObj = currentWorkout.intervals[currentIntervalIndex + 1];
+                if (nextObj.type !== 'finish') {
+                    nextExerciseEl.textContent = `Next up: ${nextObj.name} (${nextObj.duration}s)`;
+                } else {
+                    nextExerciseEl.textContent = "Next up: Finish!";
+                }
+            } else {
+                nextExerciseEl.textContent = "";
+            }
+
+            if (totalWorkoutTime > 0) {
+                const percentage = Math.min(100, (elapsedWorkoutTime / totalWorkoutTime) * 100);
+                progressFill.style.width = `${percentage}%`;
+            }
+        }
+
+        function loadWorkout() {
+            try {
+                const parsed = JSON.parse(jsonInput.value);
+                if (!parsed.intervals || !Array.isArray(parsed.intervals)) {
+                    throw new Error("Invalid format: missing 'intervals' array.");
+                }
+
+                currentWorkout = parsed;
+                workoutNameEl.textContent = parsed.name || "Custom Workout";
+                totalWorkoutTime = parsed.intervals.reduce((acc, curr) => acc + (curr.duration || 0), 0);
+
+                resetTimer();
+                loadStatus.textContent = "Loaded successfully!";
+                setTimeout(() => loadStatus.textContent = "", 3000);
+            } catch (e) {
+                loadStatus.textContent = "Error: Invalid JSON!";
+                loadStatus.style.color = "var(--danger-color)";
+                console.error(e);
+            }
+        }
+
+        function nextInterval() {
+            if (currentIntervalIndex < currentWorkout.intervals.length - 1) {
+                currentIntervalIndex++;
+                timeRemaining = currentWorkout.intervals[currentIntervalIndex].duration;
+                const currentObj = currentWorkout.intervals[currentIntervalIndex];
+
+                let cueText = currentObj.name;
+                if (currentObj.type === 'work') {
+                    cueText = `Work! ${currentObj.name}`;
+                } else if (currentObj.type === 'rest') {
+                    cueText = `Rest.`;
+                }
+                speak(cueText);
+                updateDisplay();
+            } else {
+                clearInterval(timerInterval);
+                isRunning = false;
+                releaseWakeLock();
+                speak("Workout Complete. Great job!");
+                currentExerciseEl.textContent = "Workout Complete!";
+                timeDisplay.textContent = "00:00";
+            }
+        }
+
+        function tick() {
+            if (timeRemaining > 0) {
+                timeRemaining--;
+                elapsedWorkoutTime++;
+
+                if (timeRemaining === 3) speak("3");
+                if (timeRemaining === 2) speak("2");
+                if (timeRemaining === 1) speak("1");
+
+                updateDisplay();
+            } else {
+                nextInterval();
+            }
+        }
+
+        function startTimer() {
+            if (!currentWorkout) {
+                alert("Please load a workout first!");
+                return;
+            }
+            if (isRunning) return;
+
+            requestWakeLock();
+
+            if(timeRemaining === currentWorkout.intervals[currentIntervalIndex].duration && currentIntervalIndex === 0) {
+                 speak(`Starting ${currentWorkout.name}. Get ready.`);
+            }
+
+            isRunning = true;
+            timerInterval = setInterval(tick, 1000);
+        }
+
+        function pauseTimer() {
+            isRunning = false;
+            clearInterval(timerInterval);
+            releaseWakeLock();
+            speak("Paused");
+        }
+
+        function resetTimer() {
+            isRunning = false;
+            clearInterval(timerInterval);
+            releaseWakeLock();
+            currentIntervalIndex = 0;
+            elapsedWorkoutTime = 0;
+            if (currentWorkout && currentWorkout.intervals.length > 0) {
+                timeRemaining = currentWorkout.intervals[0].duration;
+                updateDisplay();
+            } else {
+                timeDisplay.textContent = "00:00";
+            }
+            progressFill.style.width = "0%";
+        }
+
+        document.getElementById('loadBtn').addEventListener('click', loadWorkout);
+        document.getElementById('startBtn').addEventListener('click', startTimer);
+        document.getElementById('pauseBtn').addEventListener('click', pauseTimer);
+        document.getElementById('resetBtn').addEventListener('click', resetTimer);
+
+        window.onload = loadWorkout;
+    </script>
+</body>
+</html>
+```
